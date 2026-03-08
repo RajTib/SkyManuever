@@ -1,0 +1,15 @@
+# Python virtual environment
+.venv/
+
+# Local cloned repositories
+LightGlue/
+
+# PDFs (travel docs etc.)
+*.pdf
+
+# Python cache
+__pycache__/
+*.pyc
+
+# VSCode settings
+.vscode/
