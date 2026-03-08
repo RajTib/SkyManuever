@@ -140,7 +140,7 @@ class MapStitcher:
                 try:
                     H_inv = np.linalg.inv(H_local)
                 except np.linalg.LinAlgError:
-                    print("         -> [WARNING] Singular homography matrix, skipping frame.")
+                    print("-> [WARNING] Singular homography matrix, skipping frame.")
                     continue
 
                 # Chain: accumulate all steps from canvas origin to this frame
