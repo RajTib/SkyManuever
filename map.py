@@ -59,14 +59,25 @@ class MapNode:
 
     def process_frame(self, frame_np, gps_coords):
         """Processes a BGR image and GPS tag regardless of the AI backend."""
+
+        """
         image_rgb = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)
         image_tensor = torch.from_numpy(image_rgb).float() / 255.0
         image_tensor = image_tensor.permute(2, 0, 1).unsqueeze(0).to(self.device)
+        """
+
+        image_gray = cv2.cvtColor(frame_np, cv2.COLOR_BGR2GRAY)  # ← grayscale for SuperPoint
+        image_tensor = torch.from_numpy(image_gray).float() / 255.0
+        image_tensor = image_tensor.unsqueeze(0).unsqueeze(0).to(self.device)  # (1, 1, H, W)
 
         # The rest of the pipeline doesn't care if it's PyTorch or TensorRT!
         if not self.use_tensorrt:
             with torch.inference_mode():
                 feats = self.extractor.extract(image_tensor)
+                if feats is None:
+                    return
+                print(f"[DEBUG] feats type: {type(feats)}, keys: {feats.keys() if feats else 'NONE'}")
+
 
             if self.last_frame_feats is not None:
                 with torch.inference_mode():
@@ -120,13 +131,27 @@ class MapNode:
 # INDEPENDENT TESTING BLOCK
 # ==========================================
 if __name__ == '__main__':
-    # You can now toggle the script right here!
-    # Change to True to test the TRT placeholders, False for real PyTorch
     mapper = MapNode(use_tensorrt=False, mem_limit_mb=20)
 
-    print("\nStarting pipeline test...")
-    dummy_frame = np.random.randint(0, 255, (720, 1280, 3), dtype=np.uint8)
-    dummy_gps = (12.9716, 77.5946, 100.0)
+    print("\n--- Simulating 5 frame pipeline ---")
 
-    mapper.process_frame(dummy_frame, dummy_gps)
-    print("Test Complete.")
+    for i in range(5):
+        # Simulate slight camera movement by shifting the frame
+        dummy_frame = cv2.imread("any_photo.jpg")  # use any jpg from your PC
+        if dummy_frame is None:
+            dummy_frame = np.zeros((720, 1280, 3), dtype=np.uint8)
+            cv2.putText(dummy_frame, f"Frame {i}", (100, 360),
+            cv2.FONT_HERSHEY_SIMPLEX, 5, (255,255,255), 10)
+        dummy_gps = (12.9716 + i * 0.0001, 77.5946 + i * 0.0001, 100.0 + i)
+
+        print(f"\n[FRAME {i}] GPS: {dummy_gps}")
+        mapper.process_frame(dummy_frame, dummy_gps)
+
+        print(f"  → Tile buffer size: {len(mapper.tile_buffer)}")
+        if mapper.tile_buffer:
+            last = mapper.tile_buffer[-1]
+            print(f"  → Last tile inliers: {last['inliers']}")
+            print(f"  → Homography matrix:\n{last['homography']}")
+
+    print(f"\n✅ Done. Total tiles in buffer: {len(mapper.tile_buffer)}")
+    print(f"✅ Chunks saved to disk: {mapper.tile_counter}")
