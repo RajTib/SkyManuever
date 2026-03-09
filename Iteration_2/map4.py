@@ -5,8 +5,8 @@ import sys
 import os
 import gc
 import math
-from lightglue import LightGlue, SuperPoint
-from lightglue.utils import rbd  # removes batch dimension cleanly
+from lightglue import LightGlue, SuperPoint # type: ignore
+from lightglue.utils import rbd  # type: ignore # removes batch dimension cleanly
 
 
 class MapNode:
